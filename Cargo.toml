@@ -1,0 +1,18 @@
+[package]
+name = "myterm"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "myterm"
+path = "src/main.rs"
+
+[dependencies]
+eframe = "0.31"
+egui = "0.31"
+egui_term = "0.1"
+alacritty_terminal = "0.25"
+
+[profile.release]
+opt-level = 3
+lto = true
