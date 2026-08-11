@@ -1,5 +1,7 @@
 # myterm
 
+<img src="docs/logo/icon-1024.png" width="96" height="96" alt="myterm logo">
+
 A native Windows terminal emulator with its own window and tabs — built with
 [egui](https://github.com/emilk/egui)/[eframe](https://github.com/emilk/egui)
 for rendering and [egui_term](https://github.com/Harzu/egui_term) (backed by
