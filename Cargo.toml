@@ -2,6 +2,7 @@
 name = "myterm"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 [[bin]]
 name = "myterm"
@@ -12,6 +13,9 @@ eframe = "0.31"
 egui = "0.31"
 egui_term = "0.1"
 alacritty_terminal = "0.25"
+
+[build-dependencies]
+embed-resource = "3"
 
 [profile.release]
 opt-level = 3
