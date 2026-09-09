@@ -310,12 +310,12 @@ impl Chrome {
         visuals.window_fill = self.tabbar_bg;
         visuals.extreme_bg_color = self.window_bg;
         visuals.faint_bg_color = self.tab_inactive;
-        visuals.window_stroke = egui::Stroke::new(1.0, self.border);
+        visuals.window_stroke = egui::Stroke::new(1.0_f32, self.border);
         visuals.selection.bg_fill = self.accent.gamma_multiply(0.35);
-        visuals.selection.stroke = egui::Stroke::new(1.0, self.accent);
+        visuals.selection.stroke = egui::Stroke::new(1.0_f32, self.accent);
         visuals.hyperlink_color = self.accent;
-        visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, self.text_dim);
-        visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, self.text);
+        visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0_f32, self.text_dim);
+        visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0_f32, self.text);
         visuals.widgets.inactive.bg_fill = self.tab_inactive;
         visuals.widgets.inactive.weak_bg_fill = self.tab_inactive;
         visuals.widgets.hovered.bg_fill = self.tab_hover;

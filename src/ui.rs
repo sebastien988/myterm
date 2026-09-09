@@ -174,7 +174,7 @@ impl MyTermApp {
             painter.rect_stroke(
                 rect,
                 CornerRadius::same(7),
-                Stroke::new(1.0, chrome.accent),
+                Stroke::new(1.0_f32, chrome.accent),
                 StrokeKind::Inside,
             );
             // A short accent underline, the way Konsole marks the active tab.
@@ -613,7 +613,7 @@ impl MyTermApp {
             .show(ctx, |ui| {
                 egui::Frame::NONE
                     .fill(chrome.tabbar_bg)
-                    .stroke(Stroke::new(1.0, chrome.border))
+                    .stroke(Stroke::new(1.0_f32, chrome.border))
                     .corner_radius(CornerRadius::same(8))
                     .inner_margin(Margin::symmetric(12, 8))
                     .show(ui, |ui| {

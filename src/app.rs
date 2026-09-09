@@ -444,10 +444,9 @@ impl MyTermApp {
                         self.tabs[index].exited = Some(code);
                     }
                 }
-                PtyEvent::Exit => {
-                    if self.tabs[index].exited.is_none() {
-                        self.close_tab(ctx, index);
-                    }
+                // A tab kept alive to show its exit status waits for the user.
+                PtyEvent::Exit if self.tabs[index].exited.is_none() => {
+                    self.close_tab(ctx, index);
                 }
                 _ => {}
             }
