@@ -4,7 +4,7 @@
 //! file is only rewritten when settings actually change, and rewriting keeps
 //! unknown keys, ordering, and comments intact so a hand-edited file survives.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A shell that can be launched from the new-tab menu.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,18 +119,36 @@ const MANAGED_KEYS: &[&str] = &[
 /// `%APPDATA%\myterm\myterm.conf` on Windows, `$XDG_CONFIG_HOME/myterm/myterm.conf`
 /// (or `~/.config/...`) elsewhere. `MYTERM_CONFIG` overrides both.
 pub fn config_path() -> Option<PathBuf> {
-    if let Ok(explicit) = std::env::var("MYTERM_CONFIG") {
+    resolve_config_path(
+        std::env::var("MYTERM_CONFIG").ok(),
+        cfg!(windows),
+        std::env::var_os("APPDATA").map(PathBuf::from),
+        std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from),
+        std::env::var_os("HOME").map(PathBuf::from),
+    )
+}
+
+/// Resolve the config file location from already-read environment values.
+///
+/// Kept separate from [`config_path`] so Windows `%APPDATA%`, XDG and
+/// `MYTERM_CONFIG` can be unit-tested without mutating the process environment.
+pub fn resolve_config_path(
+    explicit: Option<String>,
+    windows: bool,
+    appdata: Option<PathBuf>,
+    xdg_config_home: Option<PathBuf>,
+    home: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(explicit) = explicit {
         if !explicit.trim().is_empty() {
             return Some(PathBuf::from(explicit));
         }
     }
 
-    let dir = if cfg!(windows) {
-        std::env::var_os("APPDATA").map(PathBuf::from)
+    let dir = if windows {
+        appdata
     } else {
-        std::env::var_os("XDG_CONFIG_HOME")
-            .map(PathBuf::from)
-            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
+        xdg_config_home.or_else(|| home.map(|h| h.join(".config")))
     }?;
 
     Some(dir.join("myterm").join("myterm.conf"))
@@ -263,7 +281,7 @@ impl Config {
                 _ => {
                     if let Some(name) = key.strip_prefix("profile.") {
                         let mut parts = split_command(value);
-                        if parts.is_empty() || name.trim().is_empty() {
+                        if parts.is_empty() || parts[0].is_empty() || name.trim().is_empty() {
                             bad("expected `profile.<name> = <command> [args...]`");
                         } else {
                             config.profiles.push(Profile {
@@ -337,7 +355,12 @@ impl Config {
 
         for line in source.lines() {
             match split_entry(line) {
-                Some((key, _)) if MANAGED_KEYS.contains(&key) && !written.contains(&key) => {
+                Some((key, _)) if MANAGED_KEYS.contains(&key) => {
+                    if written.contains(&key) {
+                        // A stale duplicate would otherwise keep the old value
+                        // next to the rewritten one.
+                        continue;
+                    }
                     written.push(key);
                     match self.managed_value(key) {
                         Some(value) => out.push(format!("{key} = {value}")),
@@ -373,7 +396,7 @@ impl Config {
     }
 
     /// Write the config to `path`, creating the parent directory if needed.
-    pub fn save(&self, path: &PathBuf) -> std::io::Result<()> {
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let existing = std::fs::read_to_string(path).ok();
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -599,5 +622,94 @@ mod tests {
     fn numbers_render_without_noise() {
         assert_eq!(format_number(14.0), "14");
         assert_eq!(format_number(14.5), "14.5");
+    }
+
+    #[test]
+    fn empty_profile_commands_are_rejected() {
+        let config = Config::parse("profile.Nope =\nprofile.Empty = \"\"\n");
+        assert!(config.profiles.is_empty());
+        assert_eq!(config.warnings.len(), 2);
+    }
+
+    #[test]
+    fn rendering_drops_duplicate_managed_keys() {
+        let existing = "font_size = 12\nfont_size = 99\ntheme = myterm\n";
+        let mut config = Config::parse(existing);
+        config.font_size = 20.0;
+        let rendered = config.render(Some(existing));
+        assert_eq!(rendered.matches("font_size").count(), 1);
+        assert!(rendered.contains("font_size = 20\n"));
+        assert!(!rendered.contains("font_size = 99"));
+    }
+
+    #[test]
+    fn config_path_prefers_an_explicit_override() {
+        let path = resolve_config_path(
+            Some("/tmp/custom.conf".into()),
+            true,
+            Some(PathBuf::from(r"C:\Users\me\AppData\Roaming")),
+            Some(PathBuf::from("/xdg")),
+            Some(PathBuf::from("/home/me")),
+        );
+        assert_eq!(path, Some(PathBuf::from("/tmp/custom.conf")));
+    }
+
+    #[test]
+    fn empty_override_falls_through_to_the_platform_dir() {
+        let windows = resolve_config_path(
+            Some("   ".into()),
+            true,
+            Some(PathBuf::from(r"C:\Users\me\AppData\Roaming")),
+            Some(PathBuf::from("/xdg")),
+            Some(PathBuf::from("/home/me")),
+        );
+        assert_eq!(
+            windows,
+            Some(
+                PathBuf::from(r"C:\Users\me\AppData\Roaming")
+                    .join("myterm")
+                    .join("myterm.conf")
+            )
+        );
+
+        let xdg = resolve_config_path(
+            None,
+            false,
+            Some(PathBuf::from(r"C:\Users\me\AppData\Roaming")),
+            Some(PathBuf::from("/xdg")),
+            Some(PathBuf::from("/home/me")),
+        );
+        assert_eq!(xdg, Some(PathBuf::from("/xdg/myterm/myterm.conf")));
+
+        let home = resolve_config_path(None, false, None, None, Some(PathBuf::from("/home/me")));
+        assert_eq!(
+            home,
+            Some(PathBuf::from("/home/me/.config/myterm/myterm.conf"))
+        );
+    }
+
+    #[test]
+    fn windows_path_ignores_xdg_and_home() {
+        let path = resolve_config_path(
+            None,
+            true,
+            Some(PathBuf::from(r"D:\AppData")),
+            Some(PathBuf::from("/xdg")),
+            Some(PathBuf::from("/home/me")),
+        );
+        assert_eq!(
+            path,
+            Some(
+                PathBuf::from(r"D:\AppData")
+                    .join("myterm")
+                    .join("myterm.conf")
+            )
+        );
+    }
+
+    #[test]
+    fn missing_all_location_hints_yields_no_path() {
+        assert!(resolve_config_path(None, true, None, None, None).is_none());
+        assert!(resolve_config_path(None, false, None, None, None).is_none());
     }
 }

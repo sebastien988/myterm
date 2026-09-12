@@ -29,8 +29,10 @@ pub struct Tab {
     pub backend: TerminalBackend,
     /// Title reported by the shell, if any.
     pub title: Option<String>,
-    /// Fallback label (the profile name), used until the shell sets a title.
-    pub label: String,
+    /// The profile this tab was launched from. Its name is the fallback
+    /// title until the shell sets one, and it is what "new tab like this"
+    /// on the tab's context menu reuses.
+    pub profile: Profile,
     /// The shell wrote something while this tab was in the background.
     pub unread: bool,
     /// The shell rang the bell while this tab was in the background.
@@ -42,10 +44,7 @@ pub struct Tab {
 
 impl Tab {
     pub fn display_title(&self) -> &str {
-        match &self.title {
-            Some(title) if !title.trim().is_empty() => title,
-            _ => &self.label,
-        }
+        crate::layout::tab_display_title(self.title.as_deref(), &self.profile.name)
     }
 }
 
@@ -141,6 +140,11 @@ fn active_after_close(len_before: usize, closed: usize, active: usize) -> usize 
     } else {
         active.min(len_after - 1)
     }
+}
+
+/// "Close others" is a no-op unless `keep` is a real tab among several.
+fn can_close_others(len: usize, keep: usize) -> bool {
+    keep < len && len >= 2
 }
 
 /// Where a tab lands when moved by `delta`, wrapping around the strip.
@@ -264,7 +268,7 @@ impl MyTermApp {
                     id,
                     backend,
                     title: None,
-                    label: profile.name.clone(),
+                    profile: profile.clone(),
                     unread: false,
                     bell: false,
                     exited: None,
@@ -306,6 +310,29 @@ impl MyTermApp {
         tab.unread = false;
         tab.bell = false;
         self.sync_title(ctx);
+    }
+
+    /// Close every tab except `keep`, leaving that one selected.
+    pub(crate) fn close_other_tabs(&mut self, ctx: &Context, keep: usize) {
+        if !can_close_others(self.tabs.len(), keep) {
+            return;
+        }
+        let keep_id = self.tabs[keep].id;
+        self.tabs.retain(|tab| tab.id == keep_id);
+        self.active = 0;
+        if let Some(tab) = self.tabs.get_mut(0) {
+            tab.unread = false;
+            tab.bell = false;
+        }
+        self.sync_title(ctx);
+    }
+
+    /// Spawn another tab using the same profile as `index`.
+    pub(crate) fn duplicate_tab(&mut self, ctx: &Context, index: usize) {
+        let Some(profile) = self.tabs.get(index).map(|tab| tab.profile.clone()) else {
+            return;
+        };
+        self.spawn_tab(ctx, &profile);
     }
 
     fn move_tab(&mut self, delta: i32) {
@@ -853,5 +880,14 @@ mod tests {
         assert_eq!(moved_index(3, 1, -1), 0);
         assert_eq!(moved_index(1, 0, 1), 0);
         assert_eq!(moved_index(0, 0, 1), 0);
+    }
+
+    #[test]
+    fn close_others_is_a_no_op_without_a_real_neighbour() {
+        assert!(can_close_others(3, 1));
+        assert!(can_close_others(2, 0));
+        assert!(!can_close_others(1, 0));
+        assert!(!can_close_others(3, 3));
+        assert!(!can_close_others(0, 0));
     }
 }

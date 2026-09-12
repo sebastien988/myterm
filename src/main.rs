@@ -6,6 +6,7 @@
 //!
 //! * [`app`] holds the tabs, routes PTY events and drives the frame loop
 //! * [`ui`] paints the tab strip, scrollback indicator and settings panel
+//! * [`layout`] is the tab-strip and scrollbar arithmetic, kept testable
 //! * [`input`] turns key presses into escape sequences or app actions
 //! * [`config`] reads and writes `myterm.conf`
 //! * [`theme`] defines the color schemes
@@ -15,6 +16,7 @@
 mod app;
 mod config;
 mod input;
+mod layout;
 mod theme;
 mod ui;
 

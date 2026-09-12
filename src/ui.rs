@@ -16,18 +16,16 @@ use egui_term::TerminalView;
 use crate::app::MyTermApp;
 use crate::config;
 use crate::input::SHORTCUTS;
+use crate::layout::{
+    self, TabClick, ICON_SIZE, SCROLLBAR_WIDTH, TAB_GAP, TAB_HEIGHT, TAB_MIN_WIDTH,
+};
 use crate::theme;
-
-const TAB_HEIGHT: f32 = 26.0;
-const TAB_GAP: f32 = 4.0;
-const TAB_MAX_WIDTH: f32 = 220.0;
-const TAB_MIN_WIDTH: f32 = 28.0;
-const ICON_SIZE: f32 = 26.0;
-const SCROLLBAR_WIDTH: f32 = 10.0;
 
 enum TabBarAction {
     Activate(usize),
     Close(usize),
+    CloseOthers(usize),
+    Duplicate(usize),
     NewTab,
     NewFrom(usize),
     ToggleSettings,
@@ -74,11 +72,9 @@ impl MyTermApp {
                 ui.horizontal(|ui| {
                     // Space kept clear on the right for the new-tab and
                     // settings buttons.
-                    let reserved = ICON_SIZE * 2.0 + TAB_GAP * 3.0;
-                    let count = self.tabs.len().max(1) as f32;
-                    let available = (ui.available_width() - reserved).max(TAB_MIN_WIDTH);
-                    let width = ((available - TAB_GAP * (count - 1.0)) / count)
-                        .clamp(TAB_MIN_WIDTH, TAB_MAX_WIDTH);
+                    let available =
+                        (ui.available_width() - layout::tab_bar_reserved()).max(TAB_MIN_WIDTH);
+                    let width = layout::tab_width(available, self.tabs.len());
 
                     for index in 0..self.tabs.len() {
                         if index > 0 {
@@ -112,16 +108,26 @@ impl MyTermApp {
                                 }
                             });
                         }
+                        // The gap between the last tab and the buttons: a
+                        // double-click opens a tab, the way a browser does.
+                        let leftover = ui.available_width();
+                        if leftover > TAB_GAP {
+                            let (_, empty) = ui.allocate_exact_size(
+                                Vec2::new(leftover, TAB_HEIGHT),
+                                Sense::click(),
+                            );
+                            if empty.double_clicked() {
+                                action = Some(TabBarAction::NewTab);
+                            }
+                        }
                     });
 
                     // A wheel over the strip walks through the tabs.
-                    if ui.ui_contains_pointer() && self.tabs.len() > 1 {
+                    if ui.ui_contains_pointer() {
                         let scroll = ui.input(|i| i.raw_scroll_delta.y);
-                        if scroll.abs() >= 1.0 {
-                            let delta = if scroll > 0.0 { -1 } else { 1 };
-                            let next = (self.active as i64 + delta as i64)
-                                .rem_euclid(self.tabs.len() as i64)
-                                as usize;
+                        if let Some(next) =
+                            layout::tab_after_scroll(self.active, self.tabs.len(), scroll)
+                        {
                             action = Some(TabBarAction::Activate(next));
                         }
                     }
@@ -140,6 +146,8 @@ impl MyTermApp {
                     self.spawn_tab(ctx, &profile);
                 }
             }
+            Some(TabBarAction::CloseOthers(index)) => self.close_other_tabs(ctx, index),
+            Some(TabBarAction::Duplicate(index)) => self.duplicate_tab(ctx, index),
             Some(TabBarAction::ToggleSettings) => self.show_settings = !self.show_settings,
             None => {}
         }
@@ -193,7 +201,7 @@ impl MyTermApp {
         }
 
         // The close button only appears when it can be hit comfortably.
-        let show_close = width > 70.0 && (is_active || hovered);
+        let show_close = layout::show_tab_close(width, is_active, hovered);
         let close_rect = Rect::from_center_size(
             Pos2::new(rect.right() - 13.0, rect.center().y),
             Vec2::splat(16.0),
@@ -240,27 +248,39 @@ impl MyTermApp {
             );
         }
 
-        if tab.exited.is_some() {
-            response.clone().on_hover_text(format!(
-                "{} exited with code {}",
-                tab.label,
-                tab.exited.unwrap_or_default()
-            ));
-        }
+        response
+            .clone()
+            .on_hover_text(layout::tab_hover_text(tab.display_title(), tab.exited));
 
-        let clicked_close = close_hovered
-            && response
+        let mut action = match layout::tab_click(
+            response.clicked_by(egui::PointerButton::Middle),
+            response.clicked(),
+            show_close,
+            response
                 .interact_pointer_pos()
-                .is_some_and(|pos| close_rect.contains(pos));
+                .is_some_and(|pos| close_rect.contains(pos)),
+        ) {
+            Some(TabClick::Close) => Some(TabBarAction::Close(index)),
+            Some(TabClick::Activate) => Some(TabBarAction::Activate(index)),
+            None => None,
+        };
 
-        if response.clicked_by(egui::PointerButton::Middle) || (response.clicked() && clicked_close)
-        {
-            Some(TabBarAction::Close(index))
-        } else if response.clicked() {
-            Some(TabBarAction::Activate(index))
-        } else {
-            None
-        }
+        response.context_menu(|ui| {
+            if ui.button("Close tab").clicked() {
+                action = Some(TabBarAction::Close(index));
+                ui.close_menu();
+            }
+            if self.tabs.len() > 1 && ui.button("Close others").clicked() {
+                action = Some(TabBarAction::CloseOthers(index));
+                ui.close_menu();
+            }
+            if ui.button(format!("New {}", tab.profile.name)).clicked() {
+                action = Some(TabBarAction::Duplicate(index));
+                ui.close_menu();
+            }
+        });
+
+        action
     }
 
     /// A slim scrollback indicator on the right edge. It lives in its own
@@ -284,19 +304,11 @@ impl MyTermApp {
             .show(ctx, |ui| {
                 let (rect, response) =
                     ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
-                if history == 0 {
-                    return;
-                }
-
                 let track = rect.shrink2(Vec2::new(2.5, 3.0));
-                let total = (history + screen) as f32;
-                let thumb_height =
-                    (track.height() * screen as f32 / total).clamp(24.0, track.height());
-                let travel = track.height() - thumb_height;
-                // display_offset counts lines above the viewport: 0 is the
-                // bottom of the scrollback.
-                let position = 1.0 - offset as f32 / history as f32;
-                let top = track.top() + travel * position;
+                let Some(thumb) = layout::scrollbar_thumb(history, offset, screen, track.height())
+                else {
+                    return;
+                };
 
                 let scrolled_back = offset > 0;
                 let color = if scrolled_back || response.hovered() {
@@ -306,8 +318,8 @@ impl MyTermApp {
                 };
                 ui.painter().rect_filled(
                     Rect::from_min_size(
-                        Pos2::new(track.left(), top),
-                        Vec2::new(track.width(), thumb_height),
+                        Pos2::new(track.left(), track.top() + thumb.top),
+                        Vec2::new(track.width(), thumb.height),
                     ),
                     CornerRadius::same(2),
                     color,
@@ -315,9 +327,12 @@ impl MyTermApp {
 
                 if let Some(pos) = response.interact_pointer_pos() {
                     if response.dragged() || response.clicked() {
-                        let wanted = ((pos.y - track.top() - thumb_height / 2.0) / travel.max(1.0))
-                            .clamp(0.0, 1.0);
-                        scroll_to = Some(((1.0 - wanted) * history as f32).round() as usize);
+                        scroll_to = Some(layout::scrollbar_offset_from_pointer(
+                            history,
+                            track.height(),
+                            thumb.height,
+                            pos.y - track.top(),
+                        ));
                     }
                 }
             });

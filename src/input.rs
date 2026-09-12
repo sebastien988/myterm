@@ -284,7 +284,15 @@ pub fn encode_key(key: Key, mods: Modifiers, mode: TerminalMode) -> Option<Vec<u
         Key::Home => csi_letter('H', mods, app_cursor),
         Key::End => csi_letter('F', mods, app_cursor),
 
-        Key::Insert => csi_tilde(2, mods),
+        Key::Insert => {
+            // Shift+Insert is paste (delivered as `Event::Paste` by the
+            // toolkit on most platforms). Do not also emit CSI Insert, or a
+            // paste would be preceded by a junk sequence.
+            if mods.shift && !ctrl && !alt {
+                return None;
+            }
+            csi_tilde(2, mods)
+        }
         Key::Delete => csi_tilde(3, mods),
         Key::PageUp => csi_tilde(5, mods),
         Key::PageDown => csi_tilde(6, mods),
@@ -625,6 +633,21 @@ mod tests {
         assert_eq!(
             translate(&Event::Text("b".into()), mods(false, false, true), mode),
             None
+        );
+    }
+
+    #[test]
+    fn shift_insert_is_left_to_the_paste_event() {
+        let mode = TerminalMode::empty();
+        let shift = mods(false, true, false);
+        assert_eq!(encode_key(Key::Insert, shift, mode), None);
+        assert_eq!(translate(&key_event(Key::Insert, shift), shift, mode), None);
+        // Unmodified Insert still sends the usual CSI sequence.
+        assert_eq!(encode(Key::Insert, NONE, mode), "\x1b[2~");
+        // Ctrl+Insert is a modified insert, not paste.
+        assert_eq!(
+            encode(Key::Insert, mods(true, false, false), mode),
+            "\x1b[2;5~"
         );
     }
 
