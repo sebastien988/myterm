@@ -42,6 +42,7 @@ management and VT/ANSI parsing.
 | `Shift+PageUp` / `PageDown` | Scroll one screen |
 | `Ctrl+Shift+Home` / `End` | Scroll to the top / bottom of the scrollback |
 | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | Zoom in / out / reset |
+| `Ctrl+Scroll` | Zoom in / out |
 | `Alt+Enter` | Fullscreen |
 | `Ctrl+,` | Settings |
 
@@ -49,8 +50,10 @@ Everything else goes to the shell: `Ctrl+C` interrupts, `Ctrl+U` kills the
 line, `Alt+B`/`Alt+F` move by word, function and cursor keys send the usual
 xterm sequences.
 
-Mouse: click a tab to switch, middle-click to close it, scroll over the tab
-strip to cycle, drag in the grid to select, `Ctrl+Click` a URL to open it.
+Mouse: click a tab to switch, middle-click or use the close button to close it,
+right-click a tab to close it, close the others, or open another of the same
+shell, scroll over the tab strip to cycle, double-click the empty strip to
+open a tab, drag in the grid to select, `Ctrl+Click` a URL to open it.
 
 ## Configuration
 
@@ -135,8 +138,9 @@ cargo clippy --all-targets
 ```
 
 The suite covers the parts that are pure logic: key-to-escape-sequence
-encoding, config parsing and rewriting, tab index bookkeeping, clipboard text
-extraction and the color palettes.
+encoding, config parsing and rewriting (including Windows `%APPDATA%` /
+XDG / `MYTERM_CONFIG` path resolution), tab-strip and scrollbar geometry,
+tab index bookkeeping, clipboard text extraction and the color palettes.
 
 ## How it works
 
@@ -164,6 +168,7 @@ extraction and the color palettes.
 | `src/main.rs` | entry point, window setup |
 | `src/app.rs` | tabs, PTY event routing, actions, frame loop |
 | `src/ui.rs` | tab strip, scrollbar, settings panel, overlays |
+| `src/layout.rs` | tab-strip and scrollbar arithmetic (unit-tested) |
 | `src/input.rs` | key handling and escape-sequence encoding |
 | `src/config.rs` | `myterm.conf` parsing and rewriting |
 | `src/theme.rs` | color schemes and the derived window chrome |
