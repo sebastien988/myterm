@@ -228,7 +228,7 @@ impl MyTermApp {
                                     .corner_radius(CornerRadius::same(8))
                                     .inner_margin(egui::Margin::symmetric(10, 6))
                                     .stroke(if is_active {
-                                        Stroke::new(1.0, theme::ACCENT)
+                                        Stroke::new(1.0_f32, theme::ACCENT)
                                     } else {
                                         Stroke::NONE
                                     })
