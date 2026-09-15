@@ -1,2 +1,9 @@
 /target
 logs/
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

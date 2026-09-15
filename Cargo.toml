@@ -2,6 +2,14 @@
 name = "myterm"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
+description = "A native Windows terminal emulator with tabs, built on egui and alacritty_terminal"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/sebastien988/myterm"
+keywords = ["terminal", "terminal-emulator", "conpty", "egui", "tabs"]
+categories = ["command-line-utilities"]
+publish = false
 build = "build.rs"
 
 [[bin]]
