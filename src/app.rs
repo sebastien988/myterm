@@ -13,7 +13,7 @@ use egui_term::{
 };
 
 use crate::config::{self, Config};
-use crate::tabs::{self, TabId, Tabs};
+use crate::tabs::{self, Activity, TabId, Tabs};
 use crate::theme;
 
 pub const APP_NAME: &str = "myterm";
@@ -25,6 +25,30 @@ const CLOSE_TAB: KeyboardShortcut =
 const PREV_TAB: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Tab);
 const NEXT_TAB: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::Tab);
+
+/// `Ctrl+1` … `Ctrl+9`, jumping straight to a tab; the ninth is the last one,
+/// however many there are. Only honoured without Shift, so egui_term keeps
+/// `Ctrl+Shift+2` (NUL) and `Ctrl+Shift+6` (RS).
+const SELECT_TAB_KEYS: [Key; 9] = [
+    Key::Num1,
+    Key::Num2,
+    Key::Num3,
+    Key::Num4,
+    Key::Num5,
+    Key::Num6,
+    Key::Num7,
+    Key::Num8,
+    Key::Num9,
+];
+
+/// Font size, in the usual places. `Ctrl+-` is skipped when Shift is held so
+/// `Ctrl+Shift+-` still sends the unit separator.
+const ZOOM_IN_KEYS: [Key; 2] = [Key::Equals, Key::Plus];
+const ZOOM_OUT_KEY: Key = Key::Minus;
+const ZOOM_RESET_KEY: Key = Key::Num0;
+
+/// Size of the activity dot on a tab, in points.
+const DOT_DIAMETER: f32 = 7.0;
 
 /// A tab-strip interaction, applied once the panel closure has given back its
 /// borrow of the tab list.
@@ -98,11 +122,12 @@ impl MyTermApp {
             };
 
             match event {
-                PtyEvent::Wakeup => {
-                    if let Some(tab) = self.tabs.get_mut(index) {
-                        tab.payload.sync();
-                    }
-                }
+                // Nothing to do for the tab on screen — TerminalView snapshots
+                // the grid itself when it paints. Snapshotting the others here
+                // would clone a full grid, scrollback included, for tabs that
+                // nobody is looking at.
+                PtyEvent::Wakeup => self.note_activity(index, Activity::Output),
+                PtyEvent::Bell => self.note_activity(index, Activity::Bell),
                 PtyEvent::Title(title) => self.set_title(index, title),
                 PtyEvent::ResetTitle => self.set_title(index, tabs::DEFAULT_TITLE.to_string()),
                 // Replies the emulation layer owes the program on the other
@@ -111,10 +136,13 @@ impl MyTermApp {
                 // its own timeout.
                 PtyEvent::PtyWrite(text) => self.write_to_pty(index, text.into_bytes()),
                 PtyEvent::TextAreaSizeRequest(format) => {
+                    // sync() first: the cached content carries the geometry
+                    // from the last paint, which for a background tab predates
+                    // any window resize since.
                     let size = self
                         .tabs
-                        .get(index)
-                        .map(|tab| WindowSize::from(tab.payload.last_content().terminal_size));
+                        .get_mut(index)
+                        .map(|tab| WindowSize::from(tab.payload.sync().terminal_size));
                     if let Some(size) = size {
                         self.write_to_pty(index, format(size).into_bytes());
                     }
@@ -136,6 +164,17 @@ impl MyTermApp {
                 }
                 _ => {}
             }
+        }
+    }
+
+    /// Marks a background tab, so the strip can show that something happened
+    /// while you were elsewhere.
+    fn note_activity(&mut self, index: usize, activity: Activity) {
+        if index == self.tabs.active_index() {
+            return;
+        }
+        if let Some(tab) = self.tabs.get_mut(index) {
+            tab.note(activity);
         }
     }
 
@@ -197,6 +236,59 @@ impl MyTermApp {
         if next_tab {
             self.tabs.select_next();
         }
+
+        self.handle_tab_number_shortcuts(ctx);
+        self.handle_zoom_shortcuts(ctx);
+    }
+
+    fn handle_tab_number_shortcuts(&mut self, ctx: &egui::Context) {
+        let pressed = ctx.input_mut(|i| {
+            if i.modifiers.shift {
+                return None;
+            }
+            SELECT_TAB_KEYS
+                .iter()
+                .position(|key| i.consume_key(Modifiers::CTRL, *key))
+        });
+
+        match pressed {
+            // The ninth slot is "last tab", the convention browsers and
+            // terminals share, so it stays useful past nine tabs.
+            Some(8) => self.tabs.select_last(),
+            Some(index) => self.tabs.select(index),
+            None => {}
+        }
+    }
+
+    fn handle_zoom_shortcuts(&mut self, ctx: &egui::Context) {
+        let (zoom_in, zoom_out, reset) = ctx.input_mut(|i| {
+            if i.modifiers.shift {
+                return (false, false, false);
+            }
+            (
+                ZOOM_IN_KEYS
+                    .iter()
+                    .any(|key| i.consume_key(Modifiers::CTRL, *key)),
+                i.consume_key(Modifiers::CTRL, ZOOM_OUT_KEY),
+                i.consume_key(Modifiers::CTRL, ZOOM_RESET_KEY),
+            )
+        });
+
+        let size = match (zoom_in, zoom_out, reset) {
+            (_, _, true) => config::DEFAULT_FONT_SIZE,
+            (true, _, _) => config::step_font_size(self.config.font_size, 1.0),
+            (_, true, _) => config::step_font_size(self.config.font_size, -1.0),
+            _ => return,
+        };
+
+        if size != self.config.font_size {
+            self.config.font_size = size;
+            self.font = TerminalFont::new(FontSettings {
+                font_type: egui::FontId::monospace(size),
+            });
+            // Every tab is resized from the new cell size on the next frame,
+            // so the PTYs follow without anything else to do here.
+        }
     }
 
     fn draw_tab_bar(&mut self, ctx: &egui::Context) -> Option<TabBarAction> {
@@ -234,6 +326,11 @@ impl MyTermApp {
                                     })
                                     .show(ui, |ui| {
                                         ui.horizontal(|ui| {
+                                            if let Some((color, hint)) = activity_mark(tab.activity)
+                                            {
+                                                draw_activity_dot(ui, color, hint);
+                                            }
+
                                             let label = tabs::display_title(
                                                 &tab.title,
                                                 tabs::MAX_TITLE_CHARS,
@@ -381,6 +478,21 @@ impl MyTermApp {
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE.fill(theme::BG))
             .show(ctx, |ui| {
+                // TerminalView resizes only the tab it draws. Left alone, a
+                // background tab's PTY keeps the geometry it had when it was
+                // last visible: resize the window and whatever runs in there —
+                // a pager, an editor — wraps to the old width and never gets
+                // the SIGWINCH that would let it redraw.
+                let view_size = ui.available_size();
+                let cell_size = font.font_measure(ui.ctx());
+                let active = self.tabs.active_index();
+                for (index, tab) in self.tabs.iter_mut().enumerate() {
+                    if index != active {
+                        tab.payload
+                            .process_command(BackendCommand::Resize(view_size.into(), cell_size));
+                    }
+                }
+
                 if let Some(tab) = self.tabs.active_mut() {
                     let view = TerminalView::new(ui, &mut tab.payload)
                         .set_focus(true)
@@ -390,6 +502,25 @@ impl MyTermApp {
                 }
             });
     }
+}
+
+/// The color and meaning of the dot a background tab wears, if any.
+fn activity_mark(activity: Activity) -> Option<(Color32, &'static str)> {
+    match activity {
+        Activity::Quiet => None,
+        Activity::Output => Some((theme::ACCENT, "New output")),
+        Activity::Bell => Some((theme::BELL, "Rang the bell")),
+    }
+}
+
+/// Paints the activity dot. Drawn rather than written: egui's default fonts
+/// have no glyph for a bullet of this weight and render a blank box instead.
+fn draw_activity_dot(ui: &mut egui::Ui, color: Color32, hint: &str) {
+    let (rect, response) =
+        ui.allocate_exact_size(egui::vec2(DOT_DIAMETER, DOT_DIAMETER), egui::Sense::hover());
+    ui.painter()
+        .circle_filled(rect.center(), DOT_DIAMETER / 2.0, color);
+    response.on_hover_text(hint);
 }
 
 impl eframe::App for MyTermApp {

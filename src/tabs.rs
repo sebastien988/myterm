@@ -13,10 +13,31 @@ pub const MAX_TITLE_CHARS: usize = 24;
 
 pub type TabId = u64;
 
+/// What a tab has done since you last looked at it. Only tracked while a tab
+/// is in the background — the one on screen is, by definition, seen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, PartialOrd, Ord)]
+pub enum Activity {
+    #[default]
+    Quiet,
+    /// Produced output.
+    Output,
+    /// Rang the bell, which is louder than plain output and outranks it.
+    Bell,
+}
+
 pub struct Tab<T> {
     pub id: TabId,
     pub title: String,
     pub payload: T,
+    pub activity: Activity,
+}
+
+impl<T> Tab<T> {
+    /// Raises the activity mark, never lowering it: a bell that arrives before
+    /// more output still shows as a bell until the tab is looked at.
+    pub fn note(&mut self, activity: Activity) {
+        self.activity = self.activity.max(activity);
+    }
 }
 
 pub struct Tabs<T> {
@@ -56,16 +77,16 @@ impl<T> Tabs<T> {
         self.tabs.get_mut(self.active)
     }
 
-    pub fn get(&self, index: usize) -> Option<&Tab<T>> {
-        self.tabs.get(index)
-    }
-
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Tab<T>> {
         self.tabs.get_mut(index)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Tab<T>> {
         self.tabs.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Tab<T>> {
+        self.tabs.iter_mut()
     }
 
     pub fn index_of(&self, id: TabId) -> Option<usize> {
@@ -92,8 +113,9 @@ impl<T> Tabs<T> {
             id,
             title: title.into(),
             payload,
+            activity: Activity::Quiet,
         });
-        self.active = self.tabs.len() - 1;
+        self.select(self.tabs.len() - 1);
         Ok(id)
     }
 
@@ -113,6 +135,7 @@ impl<T> Tabs<T> {
             self.active -= 1;
         }
         self.active = self.active.min(self.tabs.len().saturating_sub(1));
+        self.mark_active_seen();
 
         Some(removed)
     }
@@ -120,18 +143,33 @@ impl<T> Tabs<T> {
     pub fn select(&mut self, index: usize) {
         if index < self.tabs.len() {
             self.active = index;
+            self.mark_active_seen();
         }
+    }
+
+    /// Selects the last tab, whichever that is.
+    pub fn select_last(&mut self) {
+        self.select(self.tabs.len().saturating_sub(1));
     }
 
     pub fn select_next(&mut self) {
         if !self.tabs.is_empty() {
-            self.active = (self.active + 1) % self.tabs.len();
+            self.select((self.active + 1) % self.tabs.len());
         }
     }
 
     pub fn select_prev(&mut self) {
         if !self.tabs.is_empty() {
-            self.active = (self.active + self.tabs.len() - 1) % self.tabs.len();
+            self.select((self.active + self.tabs.len() - 1) % self.tabs.len());
+        }
+    }
+
+    /// Clears the active tab's activity mark. Every path that changes the
+    /// selection goes through here, so a tab you are looking at never shows
+    /// one.
+    fn mark_active_seen(&mut self) {
+        if let Some(tab) = self.tabs.get_mut(self.active) {
+            tab.activity = Activity::Quiet;
         }
     }
 }
@@ -289,6 +327,69 @@ mod tests {
         tabs.select_prev();
         tabs.select(3);
         assert_eq!(tabs.active_index(), 0);
+    }
+
+    #[test]
+    fn a_bell_outranks_output_and_survives_more_output() {
+        let mut tabs = tabs(&["a", "b"]);
+        let tab = tabs.get_mut(0).unwrap();
+
+        tab.note(Activity::Output);
+        assert_eq!(tab.activity, Activity::Output);
+        tab.note(Activity::Bell);
+        tab.note(Activity::Output);
+        assert_eq!(tab.activity, Activity::Bell);
+    }
+
+    #[test]
+    fn looking_at_a_tab_clears_its_activity() {
+        let mut tabs = tabs(&["a", "b"]);
+        tabs.get_mut(0).unwrap().note(Activity::Bell);
+
+        tabs.select(0);
+
+        assert_eq!(tabs.active().unwrap().activity, Activity::Quiet);
+    }
+
+    #[test]
+    fn cycling_onto_a_tab_clears_its_activity_too() {
+        let mut tabs = tabs(&["a", "b", "c"]);
+        tabs.select(0);
+        tabs.get_mut(1).unwrap().note(Activity::Output);
+        tabs.get_mut(2).unwrap().note(Activity::Output);
+
+        tabs.select_next();
+        assert_eq!(tabs.active().unwrap().activity, Activity::Quiet);
+
+        tabs.select_prev();
+        tabs.select_prev();
+        assert_eq!(tabs.active().unwrap().activity, Activity::Quiet);
+    }
+
+    #[test]
+    fn a_tab_that_slides_under_the_selection_on_close_is_marked_seen() {
+        let mut tabs = tabs(&["a", "b", "c"]);
+        tabs.select(1);
+        tabs.get_mut(2).unwrap().note(Activity::Bell);
+
+        // Closing the active tab selects whatever takes its place, which the
+        // user is now looking at.
+        tabs.close(1);
+
+        assert_eq!(active(&tabs), Some("c"));
+        assert_eq!(tabs.active().unwrap().activity, Activity::Quiet);
+    }
+
+    #[test]
+    fn select_last_lands_on_the_final_tab() {
+        let mut tabs = tabs(&["a", "b", "c"]);
+        tabs.select(0);
+        tabs.select_last();
+        assert_eq!(active(&tabs), Some("c"));
+
+        let mut empty: Tabs<&'static str> = Tabs::new();
+        empty.select_last();
+        assert_eq!(empty.active_index(), 0);
     }
 
     #[test]

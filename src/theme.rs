@@ -17,6 +17,9 @@ pub const TAB_INACTIVE: Color32 = Color32::from_rgb(0x1a, 0x1a, 0x20);
 pub const ACCENT: Color32 = Color32::from_rgb(0xa0, 0x6c, 0xff);
 pub const TEXT_DIM: Color32 = Color32::from_rgb(0x9a, 0x9a, 0xab);
 pub const ERROR: Color32 = Color32::from_rgb(0xff, 0x7a, 0x7a);
+/// The mark on a tab that rang the bell — warmer than the activity accent, so
+/// the two read apart at a glance.
+pub const BELL: Color32 = Color32::from_rgb(0xf4, 0xbf, 0x75);
 
 /// Formats a color as `#rrggbb`.
 ///

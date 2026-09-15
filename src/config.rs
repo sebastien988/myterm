@@ -10,8 +10,11 @@ pub const SHELL_ARGS_ENV: &str = "MYTERM_SHELL_ARGS";
 pub const FONT_SIZE_ENV: &str = "MYTERM_FONT_SIZE";
 
 pub const DEFAULT_FONT_SIZE: f32 = 14.0;
-const MIN_FONT_SIZE: f32 = 6.0;
-const MAX_FONT_SIZE: f32 = 72.0;
+/// Smallest and largest font sizes that still render something readable.
+pub const MIN_FONT_SIZE: f32 = 6.0;
+pub const MAX_FONT_SIZE: f32 = 72.0;
+/// How far one zoom step moves the font size, in points.
+pub const FONT_SIZE_STEP: f32 = 1.0;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
@@ -107,6 +110,12 @@ pub fn split_args(raw: &str) -> Vec<String> {
     args
 }
 
+/// Moves the font size by `steps` zoom steps, staying inside the supported
+/// range.
+pub fn step_font_size(size: f32, steps: f32) -> f32 {
+    (size + steps * FONT_SIZE_STEP).clamp(MIN_FONT_SIZE, MAX_FONT_SIZE)
+}
+
 /// Parses a font size, ignoring anything unusable and clamping the rest to a
 /// range that still renders.
 fn parse_font_size(raw: &str) -> Option<f32> {
@@ -172,6 +181,19 @@ mod tests {
         assert_eq!(parse_font_size(" 10.5 "), Some(10.5));
         assert_eq!(parse_font_size("1"), Some(MIN_FONT_SIZE));
         assert_eq!(parse_font_size("9000"), Some(MAX_FONT_SIZE));
+    }
+
+    #[test]
+    fn zooming_moves_one_step_at_a_time() {
+        assert_eq!(step_font_size(14.0, 1.0), 15.0);
+        assert_eq!(step_font_size(14.0, -1.0), 13.0);
+    }
+
+    #[test]
+    fn zooming_stops_at_the_ends_of_the_range() {
+        assert_eq!(step_font_size(MIN_FONT_SIZE, -1.0), MIN_FONT_SIZE);
+        assert_eq!(step_font_size(MAX_FONT_SIZE, 1.0), MAX_FONT_SIZE);
+        assert_eq!(step_font_size(MAX_FONT_SIZE - 0.5, 1.0), MAX_FONT_SIZE);
     }
 
     #[test]

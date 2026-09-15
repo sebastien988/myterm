@@ -16,9 +16,16 @@ management and VT/ANSI parsing.
   - `Ctrl+Shift+T` — new tab
   - `Ctrl+Shift+W` — close active tab
   - `Ctrl+Tab` / `Ctrl+Shift+Tab` — cycle tabs
+  - `Ctrl+1` … `Ctrl+8` — jump to a tab; `Ctrl+9` is the last one
   - Click a tab to switch, click the `×` to close, click `+` for a new one
   - App shortcuts are consumed before the terminal sees them, so they never
-    reach the shell as `^T`/`^W`
+    reach the shell as `^T`/`^W`. Holding Shift passes the key through, so
+    `Ctrl+Shift+2` still sends NUL.
+  - A dot marks a background tab that produced output, amber if it rang the
+    bell; it clears when you look at the tab
+  - Every tab tracks the window size, not just the visible one, so a pager or
+    editor in a background tab is not left wrapping to a stale width
+- Font size: `Ctrl+=` / `Ctrl+-` to zoom, `Ctrl+0` to reset
 - Dark theme with rounded pill tabs and a purple accent on the active tab
   (Konsole-style tab strip, Warp-style visual polish)
 - Window title mirrors the active tab's shell title, including after switching
@@ -78,7 +85,7 @@ Read from the environment at startup:
 | -------------------- | ----------------------------------- | ---------------------------------------- |
 | `MYTERM_SHELL`       | `powershell.exe` (`$SHELL` on Unix) | Program launched in each new tab         |
 | `MYTERM_SHELL_ARGS`  | *(none)*                            | Arguments for it, quote-aware            |
-| `MYTERM_FONT_SIZE`   | `14`                                | Terminal font size in points, 6–72       |
+| `MYTERM_FONT_SIZE`   | `14`                                | Starting font size in points, 6–72       |
 
 ```
 $env:MYTERM_SHELL = "cmd.exe"
@@ -100,7 +107,10 @@ than closing silently — release builds have no console to print an error to.
   into the originating tab's PTY, and color queries are answered from the same
   palette the grid is painted with.
 - `egui_term::TerminalView` renders the parsed terminal grid directly with
-  egui shapes and forwards keyboard/mouse input back into the PTY.
+  egui shapes and forwards keyboard/mouse input back into the PTY. It only
+  resizes the tab it draws, so the others are resized alongside it from the
+  same layout; nothing else touches a background tab, which keeps a noisy one
+  from cloning its grid and scrollback for a view nobody is looking at.
 - Closing a tab's shell (or hitting the close button) removes that tab; when
   the last tab closes, the window closes.
 
