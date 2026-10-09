@@ -10,16 +10,47 @@ management and VT/ANSI parsing.
 
 ## Features
 
-- Real windowed GUI app (no console box) — a genuine terminal emulator, not a
-  console wrapper
-- Tabs: independent shell sessions, each with its own PTY
-  - `Ctrl+Shift+T` — new tab
-  - `Ctrl+Shift+W` — close active tab
-  - `Ctrl+Tab` / `Ctrl+Shift+Tab` — cycle tabs
-  - Click a tab to switch, click the `x` to close, click `+` for a new one
-- Dark theme with rounded pill tabs and a purple accent on the active tab
-  (Konsole-style tab strip, Warp-style visual polish)
-- Window title mirrors the active tab's shell title
+Ideas borrowed from other terminals, credited where they came from:
+
+| Feature | Inspired by |
+| --- | --- |
+| **Tabs**, each an independent shell with its own PTY | Konsole, Windows Terminal |
+| **Split panes** with draggable dividers; unfocused panes are dimmed | Windows Terminal, iTerm2, Terminator |
+| **Command palette** — fuzzy-search every action | Windows Terminal, VS Code, Warp |
+| **Shell profiles** — new-tab dropdown with auto-detected shells (PowerShell, PowerShell 7, Command Prompt, WSL, Git Bash) | Windows Terminal |
+| **Color schemes** — myterm, Dracula, Catppuccin Mocha, Tokyo Night, One Dark, Gruvbox Dark, Nord, Solarized Dark/Light | iTerm2, Alacritty, Windows Terminal |
+| **Find in scrollback** (smart-case) | Windows Terminal, iTerm2 |
+| **Font zoom** with keyboard or Ctrl + mouse wheel | every modern terminal |
+| **Right-click copy / paste** — copies the selection, or pastes if nothing is selected | Windows Terminal, conhost, PuTTY |
+| **Multi-line paste warning** and bracketed paste | Windows Terminal, Alacritty |
+| Optional **copy on select** | xterm, PuTTY |
+| **Rename tabs** (double-click), middle-click to close, right-click tab menu | Konsole, browsers |
+| **Activity / bell indicators** on background tabs, and a taskbar flash on bell | Konsole, iTerm2 |
+| **OSC 52** clipboard — programs like tmux/vim can set the clipboard | Alacritty, kitty |
+| **Full screen** | Windows Terminal |
+| Settings (scheme, font size, toggles) and window size **persist** between runs | — |
+
+### Keyboard shortcuts
+
+| Action | Shortcut |
+| --- | --- |
+| Command palette | `Ctrl+Shift+P` |
+| New tab (default profile) | `Ctrl+Shift+T` |
+| New tab with profile *N* | `Ctrl+Shift+1` … `Ctrl+Shift+9` |
+| Split pane right / down | `Ctrl+Shift+E` / `Ctrl+Shift+O` |
+| Close pane (closes the tab with its last pane) | `Ctrl+Shift+W` |
+| Move focus between panes | `Alt+Arrow` |
+| Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
+| Go to tab *N* | `Ctrl+Alt+1` … `Ctrl+Alt+9` |
+| Find | `Ctrl+Shift+F` (`Enter` = older match, `Shift+Enter` = newer, `Esc` closes) |
+| Copy / paste | `Ctrl+Shift+C` / `Ctrl+Shift+V`, or right-click |
+| Font size bigger / smaller / reset | `Ctrl+=` / `Ctrl+-` / `Ctrl+0`, or `Ctrl` + mouse wheel |
+| Full screen | `F11` or `Alt+Enter` |
+
+Mouse: click a tab to switch, double-click it to rename, middle-click or `x`
+to close, right-click for a menu. `+` opens a new tab; the `⏷` next to it
+lists profiles and appearance settings. Drag the line between panes to
+resize them.
 
 ## Build
 
@@ -60,10 +91,12 @@ or run the built exe directly:
 target\release\myterm.exe
 ```
 
-By default each new tab launches `powershell.exe`. Override with:
+By default each new tab launches Windows PowerShell; the `⏷` dropdown (and
+the command palette) list every other shell myterm found. To change the
+default, set `MYTERM_SHELL`:
 
 ```
-$env:MYTERM_SHELL = "cmd.exe"
+$env:MYTERM_SHELL = "pwsh.exe"
 target\release\myterm.exe
 ```
 
@@ -76,8 +109,15 @@ target\release\myterm.exe
   every frame and routes each event to the right tab.
 - `egui_term::TerminalView` renders the parsed terminal grid directly with
   egui shapes and forwards keyboard/mouse input back into the PTY.
-- Closing a tab's shell (or hitting the close button) removes that tab; when
-  the last tab closes, the window closes.
+- Each tab holds a binary tree of panes (`src/panes.rs`); every pane has its
+  own backend. App shortcuts are pulled out of egui's input queue before the
+  terminal widget runs, so they never leak into the shell as control codes.
+- When a shell exits its pane closes, then the tab with its last pane, then
+  the window with its last tab.
+- egui_term is vendored under `vendor/egui_term` with a few fixes (typing no
+  longer stops when the mouse leaves the terminal, `Ctrl+U` works, multi-line
+  copies keep their line breaks) and the scrollback search hook — see
+  `vendor/egui_term/MYTERM_PATCHES.md`.
 
 ## Extending it
 

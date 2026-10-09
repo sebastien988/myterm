@@ -9,13 +9,20 @@ name = "myterm"
 path = "src/main.rs"
 
 [dependencies]
-eframe = "0.31"
+eframe = { version = "0.31", features = ["persistence"] }
 egui = "0.31"
 egui_term = "0.1"
 alacritty_terminal = "0.25"
+arboard = { version = "3", default-features = false }
+serde = { version = "1", features = ["derive"] }
 
 [build-dependencies]
 embed-resource = "3"
+
+# egui_term is vendored with a few fixes and additions; see
+# vendor/egui_term/MYTERM_PATCHES.md.
+[patch.crates-io]
+egui_term = { path = "vendor/egui_term" }
 
 [profile.release]
 opt-level = 3
