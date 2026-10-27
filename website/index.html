@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sebastien Gaudet — Developer Portfolio</title>
+  <!-- ✏️ EDIT: one-sentence description used by search engines and link previews -->
+  <meta name="description" content="Sebastien Gaudet — developer building native apps, games and tools in Rust, C++ and JavaScript. Explore my projects on GitHub.">
+  <meta property="og:title" content="Sebastien Gaudet — Developer Portfolio">
+  <meta property="og:description" content="Projects, open source work and contact info. Follow me on GitHub: @sebastien988.">
+  <meta property="og:image" content="https://avatars.githubusercontent.com/u/75503479?v=4">
+  <meta name="theme-color" content="#0e0d11">
+  <link rel="icon" href="assets/myterm-icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://api.github.com">
+  <link rel="preconnect" href="https://avatars.githubusercontent.com">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function () {
+      var saved = localStorage.getItem("theme");
+      var prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+      document.documentElement.setAttribute("data-theme", saved || (prefersLight ? "light" : "dark"));
+    })();
+  </script>
+</head>
+<body data-github-user="sebastien988">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 16 16"><path fill="currentColor" d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/></symbol>
+    <symbol id="i-fork" viewBox="0 0 16 16"><path fill="currentColor" d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75v-.878a2.25 2.25 0 111.5 0v.878a2.25 2.25 0 01-2.25 2.25h-1.5v2.128a2.251 2.251 0 11-1.5 0V8.5h-1.5A2.25 2.25 0 013.5 6.25v-.878a2.25 2.25 0 111.5 0zM5 3.25a.75.75 0 10-1.5 0 .75.75 0 001.5 0zm6.75.75a.75.75 0 100-1.5.75.75 0 000 1.5zm-3 8.75a.75.75 0 10-1.5 0 .75.75 0 001.5 0z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm18 2l-10 7L2 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></g></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></symbol>
+  </svg>
+
+  <header class="nav" id="top">
+    <div class="container nav-inner">
+      <a class="brand" href="#top" aria-label="Home">
+        <span class="brand-mark">SG</span>
+        <span class="brand-name">Sebastien Gaudet</span>
+      </a>
+      <nav class="nav-links" id="nav-links" aria-label="Primary">
+        <a href="#about">About</a>
+        <a href="#github">GitHub</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle color theme">
+          <svg class="icon icon-sun"><use href="#i-sun"/></svg>
+          <svg class="icon icon-moon"><use href="#i-moon"/></svg>
+        </button>
+        <a class="btn btn-primary btn-sm js-gh-follow" href="https://github.com/sebastien988" target="_blank" rel="noopener">
+          <svg class="icon"><use href="#i-github"/></svg><span>Follow</span>
+        </a>
+        <button class="icon-btn menu-btn" id="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy reveal">
+          <p class="eyebrow"><span class="dot"></span> Open to collaborations</p>
+          <h1>Hi, I'm <span class="grad">Sebastien Gaudet</span>.<br>I build things for the desktop, the browser &amp; the terminal.</h1>
+          <!-- ✏️ EDIT: your one-line pitch -->
+          <p class="lead">
+            Developer working across <strong>Rust</strong>, <strong>C++</strong> and <strong>JavaScript</strong> —
+            from a native terminal emulator to voxel engines and browser games.
+            Everything I make lives on GitHub.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary btn-lg js-gh-follow" href="https://github.com/sebastien988" target="_blank" rel="noopener">
+              <svg class="icon"><use href="#i-github"/></svg>Follow me on GitHub
+            </a>
+            <a class="btn btn-ghost btn-lg" href="#projects">See my projects</a>
+          </div>
+          <ul class="hero-stats" aria-label="GitHub stats">
+            <li><strong data-stat="public_repos">15</strong><span>public repos</span></li>
+            <li><strong data-stat="followers">4</strong><span>followers</span></li>
+            <li><strong data-stat="total_stars">1</strong><span>stars earned</span></li>
+          </ul>
+        </div>
+
+        <div class="terminal reveal" aria-hidden="true">
+          <div class="terminal-bar">
+            <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+            <div class="term-tabs">
+              <span class="term-tab active">~/sebastien</span>
+              <span class="term-tab">myterm</span>
+            </div>
+          </div>
+          <pre class="terminal-body" id="terminal-body"><span class="prompt">$</span> whoami
+sebastien988
+<span class="prompt">$</span> gh repo list --limit 3
+<span class="t-accent">myterm</span>            Rust  native terminal emulator
+<span class="t-accent">factorio-ish</span>      Rust  factory game (native + WASM)
+<span class="t-accent">minecraft-clone</span>   C++   voxel engine, OpenGL 3.3
+<span class="prompt">$</span> <span id="typed"></span><span class="cursor">▍</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section" id="about">
+      <div class="container about-grid">
+        <div class="reveal">
+          <p class="section-kicker">About</p>
+          <h2>A bit about me</h2>
+          <!-- ✏️ EDIT: replace the placeholder paragraphs below with your own story. -->
+          <p class="placeholder" title="Placeholder — edit in website/index.html">
+            <span class="ph-tag">Placeholder</span>
+            I'm a developer who loves building tools I actually use every day. Lately I've been deep in
+            Rust GUI programming — writing my own terminal emulator — and exploring game development
+            with procedural worlds and WebAssembly.
+          </p>
+          <p class="placeholder" title="Placeholder — edit in website/index.html">
+            <span class="ph-tag">Placeholder</span>
+            When I'm not coding, I'm … <em>(add hobbies, background, what you're looking for — job, freelance, collaborators).</em>
+          </p>
+        </div>
+        <div class="skills reveal">
+          <!-- ✏️ EDIT: your skills / tools -->
+          <h3>Toolbox</h3>
+          <ul class="chips">
+            <li>Rust</li><li>C++17</li><li>JavaScript</li><li>Python</li><li>HTML &amp; CSS</li>
+            <li>OpenGL</li><li>WebAssembly</li><li>egui / eframe</li><li>macroquad</li><li>Shell</li><li>Git &amp; GitHub</li>
+          </ul>
+          <h3>Currently</h3>
+          <ul class="list">
+            <li>Polishing <a href="https://github.com/sebastien988/myterm" target="_blank" rel="noopener">myterm</a>, a Windows terminal in Rust</li>
+            <li>Building a factory game playable in the browser via WASM</li>
+            <li class="placeholder-inline">✏️ Add what you're learning next</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GITHUB ============ -->
+    <section class="section section-alt" id="github">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker">Open source</p>
+          <h2>Find me on GitHub</h2>
+          <p class="muted">Live from the GitHub API — everything I build is public.</p>
+        </div>
+
+        <article class="gh-card reveal" id="gh-card" aria-live="polite">
+          <div class="gh-card-glow"></div>
+          <img class="gh-avatar" id="gh-avatar" src="https://avatars.githubusercontent.com/u/75503479?v=4" alt="Sebastien Gaudet's GitHub avatar" width="120" height="120">
+          <div class="gh-info">
+            <h3 class="gh-name"><span id="gh-name">Sebastien Gaudet</span> <a class="gh-login" id="gh-login" href="https://github.com/sebastien988" target="_blank" rel="noopener">@sebastien988</a></h3>
+            <!-- ✏️ EDIT: fallback bio, shown when your GitHub profile has no bio set -->
+            <p class="gh-bio" id="gh-bio" data-fallback="Building native apps, games and dev tools in Rust, C++ and JavaScript. (Placeholder bio — set one on GitHub or edit website/index.html.)">Building native apps, games and dev tools in Rust, C++ and JavaScript.</p>
+            <ul class="gh-stats">
+              <li><strong data-stat="followers">4</strong> followers</li>
+              <li><strong data-stat="following">8</strong> following</li>
+              <li><strong data-stat="public_repos">15</strong> public repos</li>
+              <li><strong data-stat="total_stars">1</strong> stars</li>
+            </ul>
+            <p class="gh-meta muted" id="gh-meta">On GitHub since 2020</p>
+          </div>
+          <div class="gh-actions">
+            <a class="btn btn-primary js-gh-follow" href="https://github.com/sebastien988" target="_blank" rel="noopener">
+              <svg class="icon"><use href="#i-github"/></svg>Follow
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/sebastien988?tab=repositories" target="_blank" rel="noopener">View my GitHub <svg class="icon"><use href="#i-arrow"/></svg></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ PROJECTS ============ -->
+    <section class="section" id="projects">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker">Projects</p>
+          <h2>Featured project</h2>
+        </div>
+
+        <article class="featured reveal">
+          <div class="featured-copy">
+            <div class="featured-title">
+              <img src="assets/myterm-icon.svg" alt="" width="56" height="56">
+              <div>
+                <h3>myterm</h3>
+                <p class="muted">Native Windows terminal emulator · Rust</p>
+              </div>
+            </div>
+            <p>
+              A real windowed terminal emulator — not a console wrapper — built with
+              <strong>egui/eframe</strong> for rendering and <strong>egui_term</strong> (backed by
+              <strong>alacritty_terminal</strong>) for PTY management and VT/ANSI parsing.
+            </p>
+            <ul class="feature-list">
+              <li>Tabs with independent shell sessions, each with its own PTY</li>
+              <li>Keyboard-first: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> new tab, <kbd>Ctrl</kbd>+<kbd>Tab</kbd> cycle</li>
+              <li>Dark theme, rounded pill tabs and a purple accent on the active tab</li>
+              <li>Window title mirrors the active tab's shell title</li>
+            </ul>
+            <div class="tags"><span>Rust</span><span>egui</span><span>alacritty_terminal</span><span>Windows</span></div>
+            <div class="cta-row">
+              <a class="btn btn-primary" href="https://github.com/sebastien988/myterm" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-github"/></svg>View on GitHub
+              </a>
+              <a class="btn btn-ghost" href="https://github.com/sebastien988/myterm/stargazers" target="_blank" rel="noopener">
+                <svg class="icon"><use href="#i-star"/></svg>Star <span class="count" id="myterm-stars">0</span>
+              </a>
+            </div>
+          </div>
+          <div class="featured-visual" aria-hidden="true">
+            <div class="mini-term">
+              <div class="mini-tabs">
+                <span class="pill active">pwsh</span><span class="pill">cargo</span><span class="pill">git</span><span class="pill plus">+</span>
+              </div>
+              <pre><span class="prompt">PS&gt;</span> cargo build --release
+   <span class="t-green">Compiling</span> myterm v0.1.0
+    <span class="t-green">Finished</span> release [optimized]
+<span class="prompt">PS&gt;</span> .\target\release\myterm.exe
+<span class="t-accent">▍</span></pre>
+            </div>
+          </div>
+        </article>
+
+        <div class="repos-head reveal">
+          <h2>All repositories</h2>
+          <div class="repo-controls" role="group" aria-label="Sort repositories">
+            <button class="seg active" type="button" data-sort="stars">Most stars</button>
+            <button class="seg" type="button" data-sort="updated">Recently updated</button>
+          </div>
+        </div>
+        <p class="notice" id="repo-notice" hidden></p>
+        <div class="repo-grid" id="repo-grid" aria-live="polite">
+          <div class="repo-card skeleton"></div><div class="repo-card skeleton"></div><div class="repo-card skeleton"></div>
+          <div class="repo-card skeleton"></div><div class="repo-card skeleton"></div><div class="repo-card skeleton"></div>
+        </div>
+        <div class="center reveal">
+          <a class="btn btn-ghost" href="https://github.com/sebastien988?tab=repositories" target="_blank" rel="noopener">
+            <svg class="icon"><use href="#i-github"/></svg>See all repositories on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="section section-alt" id="contact">
+      <div class="container">
+        <div class="contact-card reveal">
+          <p class="section-kicker">Contact</p>
+          <h2>Let's build something together</h2>
+          <p class="muted">
+            The fastest way to reach me is on GitHub — open an issue on one of my projects or follow along.
+            <!-- ✏️ EDIT: update the sentence below once you add an email -->
+            You can also drop me an email.
+          </p>
+          <div class="cta-row center">
+            <a class="btn btn-primary btn-lg js-gh-follow" href="https://github.com/sebastien988" target="_blank" rel="noopener">
+              <svg class="icon"><use href="#i-github"/></svg>Follow @sebastien988
+            </a>
+            <!-- ✏️ EDIT: replace you@example.com with your real email (or delete this button) -->
+            <a class="btn btn-ghost btn-lg placeholder-link" href="mailto:you@example.com" title="Placeholder email — edit in website/index.html">
+              <svg class="icon"><use href="#i-mail"/></svg>you@example.com
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>© <span id="year">2026</span> Sebastien Gaudet · Built with plain HTML, CSS &amp; JS · Hosted on GitHub Pages</p>
+      <div class="footer-links">
+        <a href="https://github.com/sebastien988" target="_blank" rel="noopener"><svg class="icon"><use href="#i-github"/></svg>View my GitHub</a>
+        <a class="btn btn-primary btn-sm js-gh-follow" href="https://github.com/sebastien988" target="_blank" rel="noopener">Follow</a>
+        <a href="#top">Back to top ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
